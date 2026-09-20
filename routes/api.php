@@ -65,5 +65,19 @@ Route::middleware('auth:sanctum')->group(
             '/messages/{message}/seen',
             [MessageController::class, 'markSeen']
         );
+        
     }
 );
+Route::middleware('auth:sanctum')->post('/fcm-token', function (Request $request) {
+    $data = $request->validate([
+        'fcm_token' => 'required|string',
+    ]);
+
+    $request->user()->update([
+        'fcm_token' => $data['fcm_token'],
+    ]);
+
+    return response()->json([
+        'message' => 'FCM token updated',
+    ]);
+});
