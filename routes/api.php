@@ -1,80 +1,69 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
+Route::post(
+    '/register',
+    [AuthController::class, 'register']
+);
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
+Route::post(
+    '/login',
+    [AuthController::class, 'login']
+);
 
+Route::middleware('auth:sanctum')->get(
+    '/users',
+    function (Request $request) {
+        return User::where(
+            'id',
+            '!=',
+            $request->user()->id
+        )->get();
+    }
+);
 
-// Users list
-Route::middleware('auth:sanctum')->get('/users', function (Request $request) {
+Route::middleware('auth:sanctum')->group(
+    function () {
 
-    return User::where('id', '!=', $request->user()->id)
-        ->get();
+        Route::post(
+            '/logout',
+            [AuthController::class, 'logout']
+        );
 
-});
+        Route::post(
+            '/conversations',
+            [ConversationController::class, 'start']
+        );
 
+        Route::get(
+            '/conversations',
+            [ConversationController::class, 'index']
+        );
 
-// Authentication
-Route::post('/register', [AuthController::class, 'register']);
+        Route::get(
+            '/conversations/{conversation}/messages',
+            [MessageController::class, 'index']
+        );
 
-Route::post('/login', [AuthController::class, 'login']);
+        Route::post(
+            '/conversations/{conversation}/messages',
+            [MessageController::class, 'store']
+        );
 
+        Route::patch(
+            '/messages/{message}/delivered',
+            [MessageController::class, 'markDelivered']
+        );
 
-// Protected routes
-Route::middleware('auth:sanctum')->group(function () {
-
-
-    // Logout
-    Route::post('/logout', [AuthController::class, 'logout']);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Conversations
-    |--------------------------------------------------------------------------
-    */
-
-
-    // Create or get conversation with user
-    Route::post('/conversations', 
-        [ConversationController::class, 'start']
-    );
-
-
-    // Get my conversations
-    Route::get('/conversations', 
-        [ConversationController::class, 'index']
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Messages
-    |--------------------------------------------------------------------------
-    */
-
-
-    // Get messages of conversation
-    Route::get('/conversations/{conversation}/messages',
-        [MessageController::class, 'index']
-    );
-
-
-    // Send message
-    Route::post('/conversations/{conversation}/messages',
-        [MessageController::class, 'store']
-    );
-
-
-});
+        Route::patch(
+            '/messages/{message}/seen',
+            [MessageController::class, 'markSeen']
+        );
+    }
+);

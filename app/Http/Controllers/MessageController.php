@@ -50,6 +50,7 @@ class MessageController extends Controller
             'conversation_id' => $conversation->id,
             'sender_id' => $userId,
             'message' => $data['message'],
+            'is_read' => false,
         ]);
 
         $conversation->touch();
@@ -57,5 +58,47 @@ class MessageController extends Controller
         return response()->json([
             'message' => $message->load('sender:id,name,email'),
         ], 201);
+    }
+
+    public function markDelivered(Request $request, Message $message)
+    {
+        $userId = $request->user()->id;
+
+        if ($message->sender_id === $userId) {
+            return response()->json([
+                'message' => 'You cannot mark your own message as delivered'
+            ], 403);
+        }
+
+        if ($message->delivered_at === null) {
+            $message->update([
+                'delivered_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'message' => $message->fresh(),
+        ]);
+    }
+
+    public function markSeen(Request $request, Message $message)
+    {
+        $userId = $request->user()->id;
+
+        if ($message->sender_id === $userId) {
+            return response()->json([
+                'message' => 'You cannot mark your own message as seen'
+            ], 403);
+        }
+
+        $message->update([
+            'is_read' => true,
+            'delivered_at' => $message->delivered_at ?? now(),
+            'seen_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => $message->fresh(),
+        ]);
     }
 }
