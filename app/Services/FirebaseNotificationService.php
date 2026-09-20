@@ -14,7 +14,7 @@ class FirebaseNotificationService
     {
         $factory = (new Factory)
             ->withServiceAccount(
-                storage_path('app/firebase/firebase_credentials.json')
+                storage_path('app/firebase_credentials.json')
             );
 
         $this->messaging = $factory->createMessaging();
