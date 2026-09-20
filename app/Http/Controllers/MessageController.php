@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Http\Request;
+use App\Services\FirebaseNotificationService;
 
 class MessageController extends Controller
 {
@@ -29,36 +30,66 @@ class MessageController extends Controller
         return response()->json($messages);
     }
 
-    public function store(Request $request, Conversation $conversation)
-    {
-        $userId = $request->user()->id;
+ public function store(
+    Request $request,
+    Conversation $conversation,
+    FirebaseNotificationService $notificationService
+)
+{
+    $userId = $request->user()->id;
 
-        if (
-            $conversation->user_one_id !== $userId &&
-            $conversation->user_two_id !== $userId
-        ) {
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 403);
-        }
-
-        $data = $request->validate([
-            'message' => 'required|string',
-        ]);
-
-        $message = Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $userId,
-            'message' => $data['message'],
-            'is_read' => false,
-        ]);
-
-        $conversation->touch();
-
+    if (
+        $conversation->user_one_id !== $userId &&
+        $conversation->user_two_id !== $userId
+    ) {
         return response()->json([
-            'message' => $message->load('sender:id,name,email'),
-        ], 201);
+            'message' => 'Unauthorized'
+        ], 403);
     }
+
+    $data = $request->validate([
+        'message' => 'required|string',
+    ]);
+
+
+    // Save message
+    $message = Message::create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $userId,
+        'message' => $data['message'],
+        'is_read' => false,
+    ]);
+
+
+    $conversation->touch();
+
+
+    // تحديد المستقبل
+    $receiverId =
+        $conversation->user_one_id == $userId
+        ? $conversation->user_two_id
+        : $conversation->user_one_id;
+
+
+    $receiver = \App\Models\User::find($receiverId);
+
+
+    // إرسال Notification
+    if ($receiver && $receiver->fcm_token) {
+
+        $notificationService->sendNotification(
+            $receiver->fcm_token,
+            $request->user()->name,
+            $data['message']
+        );
+
+    }
+
+
+    return response()->json([
+        'message' => $message->load('sender:id,name,email'),
+    ], 201);
+}
 
     public function markDelivered(Request $request, Message $message)
     {
