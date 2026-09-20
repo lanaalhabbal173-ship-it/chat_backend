@@ -27,19 +27,26 @@ $factory = (new Factory)
     public function sendNotification(
         string $token,
         string $title,
-        string $body
-    ) {
-        $message = CloudMessage::withTarget(
-            'token',
-            $token
-        )
-        ->withNotification(
-            Notification::create(
-                $title,
-                $body
-            )
-        );
+        string $body,
+   int $conversationId,
+    int $senderId
 
+
+    ) {
+     $message = CloudMessage::withTarget(
+    'token',
+    $token
+)
+->withNotification(
+    Notification::create(
+        $title,
+        $body
+    )
+)
+->withData([
+    'conversation_id' => (string) $conversationId,
+    'sender_id' => (string) $senderId,
+]);
         return $this->messaging->send($message);
     }
 }

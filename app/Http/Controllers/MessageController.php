@@ -78,9 +78,11 @@ class MessageController extends Controller
     if ($receiver && $receiver->fcm_token) {
 
         $notificationService->sendNotification(
-            $receiver->fcm_token,
-            $request->user()->name,
-            $data['message']
+          $receiver->fcm_token,
+    $request->user()->name,
+    $data['message'],
+    $conversation->id,
+    $userId
         );
 
     }
